@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+// TODO make thumbnails params optional
+
 #define THM_IMG_WIDTH (33*4) // thumbnail's image width
 #define THM_IMG_HEIGHT (33*3) // thumbnail's image height
 #define THM_NAME_HEIGHT 30 // file name line height

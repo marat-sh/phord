@@ -1,3 +1,14 @@
+/**
+ * FileListModel presents list of files in specified directory for QListView running in icon mode.
+ *
+ * The class takes file list with QDir.
+ * Monitor changes in the list with QFileSystemWatcher.
+ * Get file contents from Cache.
+ *
+ * The class makes additional directory scan after some time after QFileSystemWatcher signal
+ * to show final state (not transient).
+ */
+
 #ifndef FILELISTMODEL_H
 #define FILELISTMODEL_H
 

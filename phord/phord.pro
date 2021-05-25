@@ -16,6 +16,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    cache.cpp \
+    cacheloader.cpp \
+    cachemonitor.cpp \
     file.cpp \
     filelistmodel.cpp \
     imagelistmodel.cpp \
@@ -24,6 +27,9 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    cache.h \
+    cacheloader.h \
+    cachemonitor.h \
     common.h \
     file.h \
     filelistmodel.h \

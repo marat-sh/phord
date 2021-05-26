@@ -18,12 +18,14 @@
 
 #include <QMap>
 #include <QLinkedList>
-#include <QReadWriteLock>
+#include <QMutex>
 #include <QThread>
+#include <QFileInfo>
+#include <QPixmap>
 
 #include "cacheloader.h"
 #include "cachemonitor.h"
-#include "file.h"
+#include "common.h"
 
 class Cache : public QObject
 {
@@ -33,15 +35,17 @@ public:
     friend class CacheLoader;
     friend class CacheMonitor;
 
+    // The enum values can be combined.
     enum Usage
     {
         InProject = 0x1,
         InFileList = 0x2,
     };
+    Q_DECLARE_FLAGS(Usages, Cache::Usage)
 
-    enum State
+    enum Status
     {
-        Loading,    // State between the first mention and load result.
+        Loading,    // Status between the first mention and load result.
         Updating,   // Cache contains previous version of the file.
         Loaded,     // Cache contains last version of the file.
         Error,      // File maybe deleted.
@@ -49,30 +53,24 @@ public:
 
     struct CacheItem
     {
-        State state;
-        Usage usage;
-        QFileInfo info;
-        QPixmap pixmap;
-    };
+        Usages usages;  // Service field to track if the item still in use.
 
-    enum NoNeedReason
-    {
-        Deleted,                // Cache removes the item imediatelly.
-        ExludedFromProject,     // Cache keeps the item while it is used in some model or there is enough space.
-        ExludedFromFileList,    // Cache keeps the item while it is used in some model or there is enough space.
+        Status status;  // Addititonal field.
+        QFileInfo info; // Information field.
+        QPixmap pixmap; // Information field.
     };
 
     Cache(QObject *parent = nullptr);
 
     // Returns immediately. Some information can be empty.
     // Cache starts loading empty fields and will signal about updates.
-    CacheItem get(const QString path);
-    CacheItem get(const QFileInfo &fileInfo);
+    CacheItem get(const QString &path, Usages usages, bool urgent);
+    CacheItem get(const QFileInfo &fileInfo, Usages usages, bool urgent);
 
 public slots:
     // All models have to inform Cache about ending of resource usage. It allows Cache destroy unused items.
     // Possible to use direct connect it is threadsafe.
-    void noNeeded(const QString path, Cache::NoNeedReason reason);
+    void noNeeded(const QString &path, Cache::Usages reason);
 
 signals:
     // Signals about loading or changing used resource.
@@ -83,21 +81,26 @@ protected:
     void decay();
 
     // Updates Cache. Is called from CacheLoader.
-    void insert(const QString &path, QFileInfo &&info, QPixmap &&pixmap);
+    void insert(const QString path, QFileInfo &&info, QPixmap &&pixmap);
 
-    // Is called from CacheLoader.
-    void error(const QString &path);
+    // Is called from CacheLoader and CacheMonitor.
+    void error(const QString path);
+
+    // Is called from CacheMonitor.
+    void validate(const QString path, QFileInfo &&info);
 
 protected:
-    QReadWriteLock lock;
+    QMutex lock;
 
     // Keeps all information. The key is file path.
-    QMap<QString,File> map;
+    QMap<QString,CacheItem> map;
 
     CacheLoader loader;
     CacheMonitor monitor;
 };
 
-Q_DECLARE_METATYPE(Cache::NoNeedReason);
+Q_DECLARE_METATYPE(Cache::Usages)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Cache::Usages)
+//MY_DECLARE_OPERATORS_FOR_FLAGS(Cache::Usages)
 
 #endif // CACHE_H

@@ -27,6 +27,7 @@ private:
 
 private:
     Ui::MainWindow *ui;
+    Cache cache;
     QFileSystemModel fileSystemModel;
     FileListModel fileListModel;
     ImageListModel imageListModel;

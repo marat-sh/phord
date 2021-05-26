@@ -4,22 +4,25 @@
 #include <QObject>
 #include <QPixmap>
 
+#include "cache.h"
+
 class ImageListModel : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ImageListModel(QObject *parent = nullptr);
+    explicit ImageListModel(Cache *cache, QObject *parent = nullptr);
 
     int count() const;
-    void insert(int idx, const QString &filePath, const QPixmap &pixmap);
-    const QPixmap* data(int idx) const;
+    void insert(int idx, const QString &filePath);
+    QPixmap data(int idx) const;
 
 signals:
     void updated (int idx);
 
 private:
-    QList<QPixmap> list;
+    QStringList list;
+    Cache *cache;
 };
 
 #endif // IMAGELIST_H

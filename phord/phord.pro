@@ -19,7 +19,6 @@ SOURCES += \
     cache.cpp \
     cacheloader.cpp \
     cachemonitor.cpp \
-    file.cpp \
     filelistmodel.cpp \
     imagelistmodel.cpp \
     imagelistview.cpp \
@@ -31,7 +30,6 @@ HEADERS += \
     cacheloader.h \
     cachemonitor.h \
     common.h \
-    file.h \
     filelistmodel.h \
     imagelistmodel.h \
     imagelistview.h \

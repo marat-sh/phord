@@ -8,11 +8,15 @@
 #include "filelistmodel.h"
 #include "common.h"
 
-FileListModel::FileListModel(QObject *parent)
+FileListModel::FileListModel(Cache *cache, QObject *parent)
     : QAbstractListModel(parent)
 {
+    FileListModel::cache = cache;
+
     updateTimer.setInterval(500);
     updateTimer.setSingleShot(true);
+
+    connect(cache, &Cache::updated, this, &FileListModel::cache_updated);
 
     connect(&fileSystemWatcher, &QFileSystemWatcher::directoryChanged,
             this, &FileListModel::watcher_directoryChanged);
@@ -38,11 +42,11 @@ QVariant FileListModel::data(const QModelIndex &index, int role) const
 
     switch (role) {
         case Qt::DisplayRole:
-            return fileList[index.row()].info().fileName();
+            return fileList[index.row()].fileName();
         case Qt::TextAlignmentRole:
-            return Qt::AlignBottom + Qt::AlignHCenter;
+            return static_cast<Qt::Alignment::Int>(Qt::AlignBottom | Qt::AlignHCenter);
         case Qt::DecorationRole:
-            return fileList[index.row()].pixmap();
+            return cache->get(fileList[index.row()], Cache::Usage::InFileList, true).pixmap;
         case Qt::SizeHintRole:
             return QSize(THM_FULL_WIDTH, THM_FULL_HEIGHT);
     }
@@ -77,8 +81,7 @@ QMimeData *FileListModel::mimeData(const QModelIndexList &indexes) const
     // TODO move mimeData actions to one file.
     for (QModelIndex index : indexes) {
         if (index.isValid()) {
-            const File &file = fileList[index.row()];
-            stream << file.info().filePath() << file.pixmap();
+            stream << fileList[index.row()].filePath();
         }
     }
 
@@ -92,8 +95,9 @@ Qt::DropActions FileListModel::supportedDragActions() const
 }
 
 // reset directory watcher
-// clear old information
+// clear old information and inform cache about it
 // read files' set
+// inform cache about it
 void FileListModel::setDir(const QString &path)
 {
     if (FileListModel::path == path){
@@ -110,13 +114,21 @@ void FileListModel::setDir(const QString &path)
     fileSystemWatcher.addPath(path);
 
     QDir dir(path);
-    QFileInfoList fileInfoListNew = dir.entryInfoList(QDir::Files, QDir::Name);
+    QFileInfoList fileListNew = dir.entryInfoList(QDir::Files, QDir::Name);
 
     beginResetModel();
-    fileList.clear();
-    for (const QFileInfo &fi : fileInfoListNew){
-        fileList.append(File(fi));
+
+    for (const QFileInfo &fi : fileList){
+        cache->noNeeded(fi.filePath(), Cache::Usage::InFileList);
     }
+
+    fileList = std::move(fileListNew);
+
+    for (const QFileInfo &fi : fileList){
+        cache->noNeeded(fi.filePath(), Cache::Usage::InFileList);
+        cache->get(fi, Cache::Usage::InFileList, false);
+    }
+
     endResetModel();
 
     updateTimer.start();
@@ -137,36 +149,52 @@ void FileListModel::updateTimer_timeout()
     update();
 }
 
+void FileListModel::cache_updated(const QString path, bool deleted)
+{
+    if (deleted){
+        return;
+    }
+
+    for (int i=0; i<fileList.size(); ++i){
+        if (fileList[i].filePath() == path){
+            emit dataChanged(index(i), index(i));
+            return;
+        }
+    }
+}
+
 void FileListModel::update()
 {
     QDir dir(path);
-    QFileInfoList fileInfoListNew = dir.entryInfoList(QDir::Files, QDir::Name);
+    QFileInfoList fileListNew = dir.entryInfoList(QDir::Files, QDir::Name);
 
     // Comparison between two sorted lists.
-    QFileInfoList::const_iterator itNew = fileInfoListNew.cbegin();
+    QFileInfoList::const_iterator itNew = fileListNew.cbegin();
     int iOld = 0;
-    while (iOld < fileList.size() && itNew != fileInfoListNew.cend()){
-        File &fileOld = fileList[iOld];
+    while (iOld < fileList.size() && itNew != fileListNew.cend()){
+        QFileInfo &fileOld = fileList[iOld];
 
-        if (fileOld.info() == *itNew){
+        if (fileOld == *itNew){
             // Keep unchanged items.
             ++iOld;
             ++itNew;
-        } else if (fileOld.info().fileName() == itNew->fileName()) {
+        } else if (fileOld.fileName() == itNew->fileName()) {
             // Update existed item.
             fileOld = *itNew;
             emit dataChanged(index(iOld), index(iOld));
             ++iOld;
             ++itNew;
-        } else if (fileOld.info().fileName() < itNew->fileName()) {
+        } else if (fileOld.fileName() < itNew->fileName()) {
             // Remove old item.
             beginRemoveRows(QModelIndex(), iOld, iOld);
             fileList.removeAt(iOld);
+            cache->noNeeded(fileOld.filePath(), Cache::Usage::InFileList);
             endRemoveRows();
         } else {
             // Add new item.
             beginInsertRows(QModelIndex(), iOld, iOld);
             fileList.insert(iOld, *itNew);
+            cache->get(*itNew, Cache::Usage::InFileList, false);
             endInsertRows();
         }
     }
@@ -177,14 +205,16 @@ void FileListModel::update()
         beginRemoveRows(QModelIndex(), iOld, fileList.size()-1);
         while (iOld < fileList.size()){
             fileList.removeAt(iOld);
+            cache->noNeeded(fileList[iOld].filePath(), Cache::Usage::InFileList);
             ++iOld;
         }
         endRemoveRows();
-    } else if (itNew != fileInfoListNew.cend()){
+    } else if (itNew != fileListNew.cend()){
         // Add last items.
-        beginInsertRows(QModelIndex(), iOld, iOld + (fileInfoListNew.cend() - itNew));
-        while (itNew != fileInfoListNew.cend()){
+        beginInsertRows(QModelIndex(), iOld, iOld + (fileListNew.cend() - itNew));
+        while (itNew != fileListNew.cend()){
             fileList.append(*itNew);
+            cache->get(*itNew, Cache::Usage::InFileList, false);
             ++itNew;
         }
         endInsertRows();

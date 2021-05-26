@@ -42,9 +42,9 @@ void ImageListView::paintEvent(QPaintEvent *event)
     int nx = width() / gridWidth;
 
     for (int i=0; i<model->count(); ++i){
-        const QPixmap *pixmap = model->data(i);
-        if (pixmap){
-            painter.drawPixmap(i % nx * gridWidth, (i / nx) * gridHeight, *pixmap);
+        QPixmap pixmap = model->data(i);
+        if (!pixmap.isNull()){
+            painter.drawPixmap(i % nx * gridWidth, (i / nx) * gridHeight, pixmap);
         }
     }
 }
@@ -84,10 +84,9 @@ void ImageListView::dropEvent(QDropEvent *event)
         QDataStream stream(&itemData, QIODevice::ReadOnly);
 
         QString filePath;
-        QPixmap pixmap;
-        stream >> filePath >> pixmap;
+        stream >> filePath;
 
-        model->insert(indexAt(event->pos()), filePath, pixmap);
+        model->insert(indexAt(event->pos()), filePath);
 
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);

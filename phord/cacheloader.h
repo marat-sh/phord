@@ -5,7 +5,7 @@
  * It runs with low priority to not affect to GUI thread.
  *
  * Call load() to schedule update.
- * Call cancel() to prevent loading of not needed files.
+ * Call cancel() to prevent loading of not needed file.
  */
 
 #ifndef CACHELOADER_H
@@ -34,6 +34,8 @@ public:
 
 protected:
     void run() override;
+
+    // Read file.
     void loadFile(const QString &path);
 
 protected:

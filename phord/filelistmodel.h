@@ -17,14 +17,14 @@
 #include <QFileInfoList>
 #include <QTimer>
 
-#include "file.h"
+#include "cache.h"
 
 class FileListModel : public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    explicit FileListModel(QObject *parent = nullptr);
+    explicit FileListModel(Cache *cache, QObject *parent = nullptr);
 
     // Usuall model interface.
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -46,17 +46,21 @@ private slots:
 
     void updateTimer_timeout();
 
+    void cache_updated(const QString path, bool deleted);
+
 private:
     void update();
 
 private:
     QString path;
 
+    // Keeps last scan info.
+    QFileInfoList fileList;
+
+    Cache *cache;
+
     // Monitors directory changes.
     QFileSystemWatcher fileSystemWatcher;
-
-    // Keeps last scan info.
-    QList<File> fileList;
 
     // Used to make additional scan after notify.
     QTimer updateTimer;

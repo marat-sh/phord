@@ -2,9 +2,9 @@
 
 #include "imagelistmodel.h"
 
-ImageListModel::ImageListModel(QObject *parent) : QObject(parent)
+ImageListModel::ImageListModel(Cache *cache, QObject *parent) : QObject(parent)
 {
-
+    ImageListModel::cache = cache;
 }
 
 int ImageListModel::count() const
@@ -12,7 +12,7 @@ int ImageListModel::count() const
     return list.size();
 }
 
-void ImageListModel::insert(int idx, const QString &filePath, const QPixmap &pixmap)
+void ImageListModel::insert(int idx, const QString &filePath)
 {
     if (idx < 0){
         idx = 0;
@@ -20,12 +20,17 @@ void ImageListModel::insert(int idx, const QString &filePath, const QPixmap &pix
     if (idx > list.size()){
         idx = list.size();
     }
-    list.insert(idx, pixmap);
+    list.insert(idx, filePath);
 
     emit updated(idx);
 }
 
-const QPixmap* ImageListModel::data(int idx) const
+QPixmap ImageListModel::data(int idx) const
 {
-    return (idx < list.size()) ? &list[idx] : nullptr;
+    if (idx < list.size()){
+        Cache::CacheItem item = cache->get(list[idx], Cache::Usage::InProject, true);
+        return item.pixmap;
+    }
+
+    return QPixmap();
 }

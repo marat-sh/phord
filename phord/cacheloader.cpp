@@ -70,6 +70,7 @@ void CacheLoader::run()
 
         if (loadList.empty()){
             waitCondition.wait(&lock);
+            path.clear();
         } else {
             path = std::move(loadList.front());
             loadList.pop_front();
@@ -78,7 +79,9 @@ void CacheLoader::run()
         lock.unlock();
 
         // Process task out of lock.
-        loadFile(path);
+        if (!path.isEmpty()){
+            loadFile(path);
+        }
     }
 }
 

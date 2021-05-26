@@ -8,9 +8,10 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , cache(this)
     , fileSystemModel(this)
-    , fileListModel(this)
-    , imageListModel(this)
+    , fileListModel(&cache, this)
+    , imageListModel(&cache, this)
 {
     ui->setupUi(this);
 

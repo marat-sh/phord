@@ -36,6 +36,9 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     loadSettings();
+
+    // Some trick. Scroll showed window.
+    QTimer::singleShot(100, [this]{ui->treeViewDirs->scrollTo(ui->treeViewDirs->currentIndex());});
 }
 
 MainWindow::~MainWindow()
@@ -47,6 +50,7 @@ MainWindow::~MainWindow()
 void MainWindow::loadSettings()
 {
     QSettings settings;
+
     settings.beginGroup(QStringLiteral("MainWindow"));
 
     QByteArray geometry = settings.value(QStringLiteral("geometry")).toByteArray();
@@ -60,14 +64,27 @@ void MainWindow::loadSettings()
 
     QString path = settings.value(QStringLiteral("path"), QDir::homePath()).toString();
     ui->treeViewDirs->selectionModel()->setCurrentIndex(fileSystemModel.index(path), QItemSelectionModel::ClearAndSelect);
+
+    settings.endGroup();
+
+    // TODO work around project saving / loading
+    settings.beginGroup(QStringLiteral("Project"));
+    QStringList imageNames = settings.value(QStringLiteral("fileList")).toStringList();
+    imageListModel.setNames(std::move(imageNames));
 }
 
 void MainWindow::saveSettings()
 {
     QSettings settings;
+
     settings.beginGroup(QStringLiteral("MainWindow"));
     settings.setValue(QStringLiteral("geometry"), saveGeometry());
     settings.setValue(QStringLiteral("state"), saveState());
     settings.setValue(QStringLiteral("splitterState"), ui->splitterCentral->saveState());
     settings.setValue(QStringLiteral("path"), ui->treeViewDirs->currentIndex().data(QFileSystemModel::FilePathRole));
+    settings.endGroup();
+
+    // TODO work around project saving / loading
+    settings.beginGroup(QStringLiteral("Project"));
+    settings.setValue(QStringLiteral("fileList"), imageListModel.names());
 }

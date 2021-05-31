@@ -13,12 +13,18 @@ class ImageListModel : public QObject
 public:
     explicit ImageListModel(Cache *cache, QObject *parent = nullptr);
 
+    void setNames(QStringList &&names);
+    QStringList names();
+
     int count() const;
-    void insert(int idx, const QString &filePath);
+    void insert(int idx, const QStringList &filePaths);
     QPixmap data(int idx) const;
 
 signals:
-    void updated (int idx);
+    void updated (int beginIdx, int endIdx);
+
+private slots:
+    void cache_updated(const QString path, bool deleted);
 
 private:
     QStringList list;

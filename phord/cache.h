@@ -16,7 +16,7 @@
 #ifndef CACHE_H
 #define CACHE_H
 
-#include <QMap>
+#include <QHash>
 #include <QLinkedList>
 #include <QMutex>
 #include <QThread>
@@ -77,8 +77,12 @@ signals:
     void updated(const QString path, bool deleted);
 
 protected:
-    // Destroy all unused items.
-    void decay();
+    // Remove the item from decay list.
+    void decayUsed(const QString &path);
+    // Add the item to decay list.
+    void decayUnused(const QString &path);
+    // Destroy one oldest unused items if there is no space.
+    void decayClean();
 
     // Updates Cache. Is called from CacheLoader.
     void insert(const QString path, QFileInfo &&info, QPixmap &&pixmap);
@@ -92,8 +96,11 @@ protected:
 protected:
     QMutex lock;
 
-    // Keeps all information. The key is file path.
-    QMap<QString,CacheItem> map;
+    // Keeps all information including unused items. The key is file path.
+    QHash<QString,CacheItem> hash;
+    // All unused items' keys are stored here in oreder from the oldest.
+    std::list<QString> decayList;
+    static const std::size_t maxDecaySize = MAX_CACHE_MEM_SZ / imgSize(THM_IMG_WIDTH, THM_IMG_HEIGHT);
 
     CacheLoader loader;
     CacheMonitor monitor;

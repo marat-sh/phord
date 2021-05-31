@@ -31,7 +31,7 @@ int ImageListView::indexAt(const QPoint &pos) const
     return idx;
 }
 
-void ImageListView::model_updated(int idx)
+void ImageListView::model_updated(int beginIdx, int endIdx)
 {
     update();
 }
@@ -83,10 +83,18 @@ void ImageListView::dropEvent(QDropEvent *event)
         QByteArray itemData = event->mimeData()->data(THM_DRAG_DROP_MIME_TYPE);
         QDataStream stream(&itemData, QIODevice::ReadOnly);
 
-        QString filePath;
-        stream >> filePath;
+        QStringList filePaths;
+        forever {
+            QString path;
+            stream >> path;
+            if (!path.isEmpty()){
+                filePaths += path;
+            } else {
+                break;
+            }
+        }
 
-        model->insert(indexAt(event->pos()), filePath);
+        model->insert(indexAt(event->pos()), filePaths);
 
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);

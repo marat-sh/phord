@@ -19,7 +19,7 @@ public:
 signals:
 
 private slots:
-    void model_updated(int idx);
+    void model_updated(int beginIdx, int endIdx);
 
 protected:
     void paintEvent(QPaintEvent *event) override;

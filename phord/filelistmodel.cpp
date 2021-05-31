@@ -91,7 +91,7 @@ QMimeData *FileListModel::mimeData(const QModelIndexList &indexes) const
 
 Qt::DropActions FileListModel::supportedDragActions() const
 {
-    return Qt::CopyAction;
+    return Qt::LinkAction;
 }
 
 // reset directory watcher
@@ -125,7 +125,6 @@ void FileListModel::setDir(const QString &path)
     fileList = std::move(fileListNew);
 
     for (const QFileInfo &fi : fileList){
-        cache->noNeeded(fi.filePath(), Cache::Usage::InFileList);
         cache->get(fi, Cache::Usage::InFileList, false);
     }
 
